@@ -7,13 +7,27 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // ─── CORS ────────────────────────────────────────────────────────────────
+  // CORS_ORIGINS puede ser:
+  //   '*'                  → permite cualquier origen (recomendado para WebGL)
+  //   'url1,url2,...'      → lista de orígenes específicos
+  //   (no definido)        → permite cualquier origen por defecto
+  const rawOrigins = process.env.CORS_ORIGINS;
+
+  let corsOrigin: string | string[] | boolean;
+
+  if (!rawOrigins || rawOrigins === '*') {
+    corsOrigin = true;             // Refleja el origen de la request (compatible con credentials)
+  } else {
+    corsOrigin = rawOrigins.split(',').map(o => o.trim());
+  }
+
   app.enableCors({
-    origin: process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(',')
-      : ['http://localhost:4200', 'http://localhost:3001', 'http://localhost:8080'],
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
   // ─────────────────────────────────────────────────────────────────────────
 
