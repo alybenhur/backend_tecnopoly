@@ -16,20 +16,16 @@ async function createNestServer(expressInstance: unknown) {
   );
 
   // ─── CORS ───────────────────────────────────────────────────────────────
-  // IMPORTANTE: 'credentials: true' es incompatible con origin: '*'.
-  // Se usa 'origin: true' para reflejar el origen de la request,
-  // lo que equivale a permitir cualquier origen pero de forma válida.
-  const rawOrigins = process.env.CORS_ORIGINS;
-  const corsOrigin: string | string[] | boolean =
-    !rawOrigins || rawOrigins === '*'
-      ? true
-      : rawOrigins.split(',').map((o) => o.trim());
-
+  // Vercel ya inyecta los headers CORS a nivel CDN desde vercel.json.
+  // Aquí se usa origin: '*' sin credentials para no duplicar ni
+  // contradecir los headers que Vercel agrega automáticamente.
+  // Unity WebGL usa JWT Bearer tokens (no cookies), por lo que
+  // credentials:true no es necesario.
   app.enableCors({
-    origin: corsOrigin,
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+    credentials: false,
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });
