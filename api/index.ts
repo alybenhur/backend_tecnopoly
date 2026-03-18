@@ -16,13 +16,22 @@ async function createNestServer(expressInstance: unknown) {
   );
 
   // ─── CORS ───────────────────────────────────────────────────────────────
+  // IMPORTANTE: 'credentials: true' es incompatible con origin: '*'.
+  // Se usa 'origin: true' para reflejar el origen de la request,
+  // lo que equivale a permitir cualquier origen pero de forma válida.
+  const rawOrigins = process.env.CORS_ORIGINS;
+  const corsOrigin: string | string[] | boolean =
+    !rawOrigins || rawOrigins === '*'
+      ? true
+      : rawOrigins.split(',').map((o) => o.trim());
+
   app.enableCors({
-    origin: process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(',')
-      : '*',
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   // ─── Validación global ──────────────────────────────────────────────────
