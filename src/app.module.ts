@@ -1,21 +1,35 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { Module }       from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { SupabaseModule }   from './supabase/supabase.module';
-import { AuthModule }       from './auth/auth.module';
-import { UsersModule }      from './users/users.module';
-import { SubjectsModule }   from './subjects/subjects.module';
-import { QuestionsModule }  from './questions/questions.module';
-import { GradesModule }     from './grades/grades.module';
+import { AppService }    from './app.service';
+
+import { AuthModule }      from './auth/auth.module';
+import { UsersModule }     from './users/users.module';
+import { GradesModule }    from './grades/grades.module';
+import { SubjectsModule }  from './subjects/subjects.module';
+import { QuestionsModule } from './questions/questions.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env',
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject:  [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        uri: config.getOrThrow<string>('MONGODB_URI'),
+        dbName: config.get<string>('MONGODB_DB', 'tecnopoly'),
+        // Los índices se sincronizan solo fuera de producción, igual que
+        // hacía `synchronize` con TypeORM.
+        autoIndex: config.get<string>('NODE_ENV') !== 'production',
+        // Pool reducido: en serverless cada instancia abre su propia conexión.
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 10000,
+      }),
     }),
-    SupabaseModule,
+
     AuthModule,
     UsersModule,
     GradesModule,
@@ -23,6 +37,6 @@ import { GradesModule }     from './grades/grades.module';
     QuestionsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers:   [AppService],
 })
 export class AppModule {}

@@ -1,4 +1,4 @@
-import { IsString, MinLength, MaxLength, IsOptional, IsUUID } from 'class-validator';
+import { IsString, MinLength, MaxLength, IsOptional, IsMongoId } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateSubjectDto {
@@ -15,8 +15,8 @@ export class UpdateSubjectDto {
   @MaxLength(500)
   description?: string;
 
-  @ApiPropertyOptional({ example: '550e8400-e29b-41d4-a716-446655440000', description: 'ID del grado al que reasignar la asignatura' })
+  @ApiPropertyOptional({ example: '6650f1c2a4b3d2e1a0123457', description: 'ID del grado al que reasignar la asignatura' })
   @IsOptional()
-  @IsUUID()
+  @IsMongoId()
   grade_id?: string;
 }

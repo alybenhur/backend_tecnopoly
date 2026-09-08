@@ -1,166 +1,88 @@
 import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  InternalServerErrorException,
+  Injectable, NotFoundException, ConflictException,
 } from '@nestjs/common';
-import { SupabaseService } from '../supabase/supabase.service';
-import { CreateGradeDto } from './dto/create-grade.dto';
-import { UpdateGradeDto } from './dto/update-grade.dto';
+import { InjectModel }      from '@nestjs/mongoose';
+import { Model }            from 'mongoose';
+import { Grade, GradeDocument }     from '../schemas/grade.schema';
+import { Subject, SubjectDocument } from '../schemas/subject.schema';
+import { CreateGradeDto }   from './dto/create-grade.dto';
+import { UpdateGradeDto }   from './dto/update-grade.dto';
+
+/** Trae el objeto completo del profesor dentro de cada asignatura. */
+const PROFESSORS_POPULATE = { path: 'subject_professors.professor' };
 
 @Injectable()
 export class GradesService {
-  constructor(private supabaseService: SupabaseService) {}
+  constructor(
+    @InjectModel(Grade.name)   private gradeModel:   Model<GradeDocument>,
+    @InjectModel(Subject.name) private subjectModel: Model<SubjectDocument>,
+  ) {}
 
-  // ── Crear grado ────────────────────────────────────────────────────────
-  async create(createGradeDto: CreateGradeDto, adminId: string) {
-    const client = this.supabaseService.getClient();
+  async create(dto: CreateGradeDto, adminId: string) {
+    const existing = await this.gradeModel.exists({ name: dto.name });
+    if (existing) throw new ConflictException(`Ya existe un grado con el nombre "${dto.name}"`);
 
-    // Verificar nombre duplicado
-    const { data: existing } = await client
-      .from('grades')
-      .select('id')
-      .eq('name', createGradeDto.name)
-      .maybeSingle();
-
-    if (existing) {
-      throw new ConflictException(`Ya existe un grado con el nombre "${createGradeDto.name}"`);
-    }
-
-    const { data, error } = await client
-      .from('grades')
-      .insert({
-        name:        createGradeDto.name,
-        description: createGradeDto.description ?? null,
-        created_by:  adminId,
-      })
-      .select('id, name, description, created_by, created_at')
-      .single();
-
-    if (error) throw new InternalServerErrorException(error.message);
-    return data;
+    return this.gradeModel.create({ ...dto, created_by: adminId });
   }
 
-  // ── Listar todos los grados ────────────────────────────────────────────
   async findAll() {
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from('grades')
-      .select(`
-        id,
-        name,
-        description,
-        created_at,
-        subjects (
-          id,
-          name,
-          description
-        )
-      `)
-      .order('name', { ascending: true });
-
-    if (error) throw new InternalServerErrorException(error.message);
-    return data;
+    return this.gradeModel
+      .find()
+      .populate('subjects')
+      .sort({ name: 1 });
   }
 
-  // ── Obtener grado por ID (con sus asignaturas) ─────────────────────────
   async findOne(id: string) {
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from('grades')
-      .select(`
-        id,
-        name,
-        description,
-        created_at,
-        subjects (
-          id,
-          name,
-          description,
-          subject_professors (
-            professor_id,
-            assigned_at,
-            users ( id, name, email )
-          )
-        )
-      `)
-      .eq('id', id)
-      .single();
+    const grade = await this.gradeModel
+      .findById(id)
+      .populate({ path: 'subjects', populate: PROFESSORS_POPULATE });
 
-    if (error || !data) throw new NotFoundException(`Grado con id "${id}" no encontrado`);
-    return data;
+    if (!grade) throw new NotFoundException(`Grado con id "${id}" no encontrado`);
+    return grade;
   }
 
-  // ── Listar asignaturas de un grado ─────────────────────────────────────
   async findSubjectsByGrade(gradeId: string) {
-    // Verificar que el grado existe
-    await this.findOne(gradeId);
-
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from('subjects')
-      .select(`
-        id,
-        name,
-        description,
-        created_at,
-        subject_professors (
-          professor_id,
-          assigned_at,
-          users ( id, name, email )
-        )
-      `)
-      .eq('grade_id', gradeId)
-      .order('name', { ascending: true });
-
-    if (error) throw new InternalServerErrorException(error.message);
-    return data;
+    await this.assertExists(gradeId);
+    return this.subjectModel
+      .find({ grade_id: gradeId })
+      .populate(PROFESSORS_POPULATE)
+      .sort({ name: 1 });
   }
 
-  // ── Actualizar grado ───────────────────────────────────────────────────
-  async update(id: string, updateGradeDto: UpdateGradeDto) {
-    const client = this.supabaseService.getClient();
+  async update(id: string, dto: UpdateGradeDto) {
+    await this.assertExists(id);
 
-    // Verificar que existe
-    await this.findOne(id);
-
-    // Verificar nombre duplicado si se va a cambiar
-    if (updateGradeDto.name) {
-      const { data: existing } = await client
-        .from('grades')
-        .select('id')
-        .eq('name', updateGradeDto.name)
-        .neq('id', id)
-        .maybeSingle();
-
-      if (existing) {
-        throw new ConflictException(`Ya existe un grado con el nombre "${updateGradeDto.name}"`);
-      }
+    if (dto.name) {
+      const dup = await this.gradeModel.findOne({ name: dto.name });
+      if (dup && dup.id !== id)
+        throw new ConflictException(`Ya existe un grado con el nombre "${dto.name}"`);
     }
 
-    const { data, error } = await client
-      .from('grades')
-      .update(updateGradeDto)
-      .eq('id', id)
-      .select('id, name, description, created_at')
-      .single();
-
-    if (error) throw new InternalServerErrorException(error.message);
-    return data;
+    return this.gradeModel.findByIdAndUpdate(id, dto, { new: true });
   }
 
-  // ── Eliminar grado ─────────────────────────────────────────────────────
   async remove(id: string) {
-    const client = this.supabaseService.getClient();
+    await this.assertExists(id);
 
-    await this.findOne(id);
+    // Equivalente al ON DELETE SET NULL de `subjects.grade_id`.
+    await this.subjectModel.updateMany({ grade_id: id }, { $set: { grade_id: null } });
+    await this.gradeModel.findByIdAndDelete(id);
 
-    const { error } = await client
-      .from('grades')
-      .delete()
-      .eq('id', id);
+    return { message: 'Grado eliminado correctamente' };
+  }
 
-    if (error) throw new InternalServerErrorException(error.message);
-    return { message: `Grado eliminado correctamente` };
+  /** Lanza 404 si la asignatura no existe o no pertenece al grado indicado. */
+  async assertSubjectBelongs(gradeId: string, subjectId: string) {
+    await this.assertExists(gradeId);
+    const belongs = await this.subjectModel.exists({ _id: subjectId, grade_id: gradeId });
+    if (!belongs)
+      throw new NotFoundException(
+        `La asignatura con id "${subjectId}" no pertenece al grado "${gradeId}"`,
+      );
+  }
+
+  private async assertExists(id: string) {
+    const exists = await this.gradeModel.exists({ _id: id });
+    if (!exists) throw new NotFoundException(`Grado con id "${id}" no encontrado`);
   }
 }

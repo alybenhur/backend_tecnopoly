@@ -6,7 +6,6 @@ import {
   Delete,
   Body,
   Param,
-  ParseUUIDPipe,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -26,6 +25,7 @@ import { RolesGuard }       from '../common/guards/roles.guard';
 import { Roles }            from '../common/decorators/roles.decorator';
 import { CurrentUser }      from '../common/decorators/current-user.decorator';
 import { Role }             from '../common/enums/role.enum';
+import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 
 @ApiTags('grades')
 @Controller('grades')
@@ -58,20 +58,20 @@ export class GradesController {
   // ── GET /api/grades/:id ─── Público: detalle de grado ─────────────────
   @Get(':id')
   @ApiOperation({ summary: 'Obtener detalle de un grado con sus asignaturas' })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiParam({ name: 'id', type: 'string' })
   @ApiResponse({ status: 200, description: 'Detalle del grado' })
   @ApiResponse({ status: 404, description: 'Grado no encontrado' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Param('id', ParseObjectIdPipe) id: string) {
     return this.gradesService.findOne(id);
   }
 
   // ── GET /api/grades/:id/subjects ─── Público: asignaturas del grado ───
   @Get(':id/subjects')
   @ApiOperation({ summary: 'Listar asignaturas de un grado específico' })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid', description: 'ID del grado' })
+  @ApiParam({ name: 'id', type: 'string', description: 'ObjectId del grado' })
   @ApiResponse({ status: 200, description: 'Asignaturas del grado' })
   @ApiResponse({ status: 404, description: 'Grado no encontrado' })
-  findSubjects(@Param('id', ParseUUIDPipe) id: string) {
+  findSubjects(@Param('id', ParseObjectIdPipe) id: string) {
     return this.gradesService.findSubjectsByGrade(id);
   }
 
@@ -81,11 +81,11 @@ export class GradesController {
   @Roles(Role.ADMIN)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Actualizar grado (solo Admin)' })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiParam({ name: 'id', type: 'string' })
   @ApiResponse({ status: 200, description: 'Grado actualizado' })
   @ApiResponse({ status: 404, description: 'Grado no encontrado' })
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', ParseObjectIdPipe) id: string,
     @Body() updateGradeDto: UpdateGradeDto,
   ) {
     return this.gradesService.update(id, updateGradeDto);
@@ -98,10 +98,10 @@ export class GradesController {
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Eliminar grado (solo Admin)' })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  @ApiParam({ name: 'id', type: 'string' })
   @ApiResponse({ status: 200, description: 'Grado eliminado' })
   @ApiResponse({ status: 404, description: 'Grado no encontrado' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
+  remove(@Param('id', ParseObjectIdPipe) id: string) {
     return this.gradesService.remove(id);
   }
 }

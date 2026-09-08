@@ -1,152 +1,94 @@
 import {
-  Injectable,
-  ConflictException,
-  NotFoundException,
-  BadRequestException,
+  Injectable, ConflictException, NotFoundException,
 } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
-import { SupabaseService } from '../supabase/supabase.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { Role } from '../common/enums/role.enum';
+import { InjectModel }   from '@nestjs/mongoose';
+import { Model }         from 'mongoose';
+import * as bcrypt       from 'bcrypt';
+import { User, UserDocument }         from '../schemas/user.schema';
+import { Grade, GradeDocument }       from '../schemas/grade.schema';
+import { Subject, SubjectDocument }   from '../schemas/subject.schema';
+import { Question, QuestionDocument } from '../schemas/question.schema';
+import { CreateUserDto }    from './dto/create-user.dto';
+import { UpdateUserDto }    from './dto/update-user.dto';
+import { Role }             from '../common/enums/role.enum';
 
 const SALT_ROUNDS = 10;
 
 @Injectable()
 export class UsersService {
-  constructor(private supabaseService: SupabaseService) {}
+  constructor(
+    @InjectModel(User.name)     private userModel:     Model<UserDocument>,
+    @InjectModel(Grade.name)    private gradeModel:    Model<GradeDocument>,
+    @InjectModel(Subject.name)  private subjectModel:  Model<SubjectDocument>,
+    @InjectModel(Question.name) private questionModel: Model<QuestionDocument>,
+  ) {}
 
-  // ─── Crear usuario (solo admin) ───────────────────────────────────────────
-  async create(createUserDto: CreateUserDto) {
-    const client = this.supabaseService.getClient();
-    const { name, email, password, role } = createUserDto;
+  async create(dto: CreateUserDto) {
+    const email = dto.email.toLowerCase();
+    const existing = await this.userModel.exists({ email });
+    if (existing) throw new ConflictException(`El email ${dto.email} ya está registrado`);
 
-    // Verificar que el email no esté registrado
-    const { data: existing } = await client
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (existing) {
-      throw new ConflictException(`El email ${email} ya está registrado`);
-    }
-
-    const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
-
-    const { data: newUser, error } = await client
-      .from('users')
-      .insert({ name, email, password_hash, role })
-      .select('id, name, email, role, created_at')
-      .single();
-
-    if (error) {
-      throw new BadRequestException(error.message);
-    }
-
-    return newUser;
+    const password_hash = await bcrypt.hash(dto.password, SALT_ROUNDS);
+    return this.userModel.create({
+      name: dto.name,
+      email,
+      password_hash,
+      role: dto.role,
+    });
   }
 
-  // ─── Listar todos los usuarios ────────────────────────────────────────────
   async findAll(role?: Role) {
-    const client = this.supabaseService.getClient();
-
-    let query = client
-      .from('users')
-      .select('id, name, email, role, created_at')
-      .order('created_at', { ascending: false });
-
-    if (role) {
-      query = query.eq('role', role);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      throw new BadRequestException(error.message);
-    }
-
-    return data;
+    return this.userModel
+      .find(role ? { role } : {})
+      .sort({ created_at: -1 });
   }
 
-  // ─── Buscar usuario por ID ────────────────────────────────────────────────
   async findOne(id: string) {
-    const client = this.supabaseService.getClient();
-
-    const { data: user, error } = await client
-      .from('users')
-      .select('id, name, email, role, created_at')
-      .eq('id', id)
-      .single();
-
-    if (error || !user) {
-      throw new NotFoundException(`Usuario con id ${id} no encontrado`);
-    }
-
+    const user = await this.userModel.findById(id);
+    if (!user) throw new NotFoundException(`Usuario con id ${id} no encontrado`);
     return user;
   }
 
-  // ─── Actualizar usuario ────────────────────────────────────────────────────
-  async update(id: string, updateUserDto: UpdateUserDto) {
-    const client = this.supabaseService.getClient();
-
-    // Verificar que el usuario existe
+  async update(id: string, dto: UpdateUserDto) {
     await this.findOne(id);
 
-    const updateData: Record<string, unknown> = { ...updateUserDto };
+    const updateData: Record<string, unknown> = {};
 
-    // Si se manda nueva contraseña, hashearla
-    if (updateUserDto.password) {
-      updateData.password_hash = await bcrypt.hash(
-        updateUserDto.password,
-        SALT_ROUNDS,
-      );
-      delete updateData.password;
+    if (dto.email) {
+      const email = dto.email.toLowerCase();
+      const existing = await this.userModel.findOne({ email });
+      if (existing && existing.id !== id)
+        throw new ConflictException(`El email ${dto.email} ya está en uso`);
+      updateData.email = email;
     }
 
-    // Si se actualiza el email, verificar que no exista
-    if (updateUserDto.email) {
-      const { data: existing } = await client
-        .from('users')
-        .select('id')
-        .eq('email', updateUserDto.email)
-        .neq('id', id)
-        .maybeSingle();
+    if (dto.name)     updateData.name = dto.name;
+    if (dto.role)     updateData.role = dto.role;
+    if (dto.password) updateData.password_hash = await bcrypt.hash(dto.password, SALT_ROUNDS);
 
-      if (existing) {
-        throw new ConflictException(
-          `El email ${updateUserDto.email} ya está en uso`,
-        );
-      }
-    }
-
-    const { data: updated, error } = await client
-      .from('users')
-      .update(updateData)
-      .eq('id', id)
-      .select('id, name, email, role, created_at')
-      .single();
-
-    if (error) {
-      throw new BadRequestException(error.message);
-    }
-
+    const updated = await this.userModel.findByIdAndUpdate(id, updateData, { new: true });
+    if (!updated) throw new NotFoundException(`Usuario con id ${id} no encontrado`);
     return updated;
   }
 
-  // ─── Eliminar usuario ──────────────────────────────────────────────────────
   async remove(id: string) {
-    const client = this.supabaseService.getClient();
-
-    // Verificar que el usuario existe
     await this.findOne(id);
 
-    const { error } = await client.from('users').delete().eq('id', id);
+    // MongoDB no tiene claves foráneas: se replican a mano las acciones
+    // ON DELETE que antes aplicaba MySQL.
+    await Promise.all([
+      // CASCADE: desasigna al profesor de todas sus asignaturas.
+      this.subjectModel.updateMany(
+        { 'subject_professors.professor_id': id },
+        { $pull: { subject_professors: { professor_id: id } } },
+      ),
+      // SET NULL: el contenido creado sobrevive al usuario.
+      this.subjectModel.updateMany({ created_by: id },  { $set: { created_by: null } }),
+      this.gradeModel.updateMany({ created_by: id },    { $set: { created_by: null } }),
+      this.questionModel.updateMany({ created_by: id }, { $set: { created_by: null } }),
+    ]);
 
-    if (error) {
-      throw new BadRequestException(error.message);
-    }
-
+    await this.userModel.findByIdAndDelete(id);
     return { message: `Usuario con id ${id} eliminado correctamente` };
   }
 }

@@ -1,8 +1,9 @@
-import { Controller, Get, Param, Query, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger';
-import { QuestionsService } from '../questions/questions.service';
-import { GradesService }    from './grades.service';
-import { QuestionLevel }    from '../common/enums/question-level.enum';
+import { QuestionsService }  from '../questions/questions.service';
+import { GradesService }     from './grades.service';
+import { QuestionLevel }     from '../common/enums/question-level.enum';
+import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 
 // ============================================================
 // GradeQuestionsController
@@ -28,27 +29,17 @@ export class GradeQuestionsController {
       'Devuelve las preguntas de una asignatura verificando que pertenezca al grado indicado. ' +
       'Opcionalmente filtradas por nivel. Acceso público.',
   })
-  @ApiParam({ name: 'gradeId',   type: 'string', format: 'uuid', description: 'ID del grado' })
-  @ApiParam({ name: 'subjectId', type: 'string', format: 'uuid', description: 'ID de la asignatura' })
+  @ApiParam({ name: 'gradeId',   type: 'string', description: 'ObjectId del grado' })
+  @ApiParam({ name: 'subjectId', type: 'string', description: 'ObjectId de la asignatura' })
   @ApiQuery({ name: 'level', required: false, enum: QuestionLevel, description: 'Filtrar por nivel (basico | medio | avanzado)' })
   @ApiResponse({ status: 200, description: 'Lista de preguntas con sus opciones.' })
   @ApiResponse({ status: 404, description: 'Grado o asignatura no encontrada, o la asignatura no pertenece al grado.' })
   async findQuestionsByGradeAndSubject(
-    @Param('gradeId',   ParseUUIDPipe) gradeId:   string,
-    @Param('subjectId', ParseUUIDPipe) subjectId: string,
+    @Param('gradeId',   ParseObjectIdPipe) gradeId:   string,
+    @Param('subjectId', ParseObjectIdPipe) subjectId: string,
     @Query('level') level?: QuestionLevel,
   ) {
-    // Verificar que la asignatura pertenece al grado
-    const subjects = await this.gradesService.findSubjectsByGrade(gradeId);
-    const belongs  = subjects.some((s: any) => s.id === subjectId);
-
-    if (!belongs) {
-      const { NotFoundException } = await import('@nestjs/common');
-      throw new NotFoundException(
-        `La asignatura con id "${subjectId}" no pertenece al grado "${gradeId}"`,
-      );
-    }
-
+    await this.gradesService.assertSubjectBelongs(gradeId, subjectId);
     return this.questionsService.findAllBySubject(subjectId, level);
   }
 }
