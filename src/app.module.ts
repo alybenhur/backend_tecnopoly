@@ -10,6 +10,7 @@ import { UsersModule }     from './users/users.module';
 import { GradesModule }    from './grades/grades.module';
 import { SubjectsModule }  from './subjects/subjects.module';
 import { QuestionsModule } from './questions/questions.module';
+import { GamesModule }     from './games/games.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { QuestionsModule } from './questions/questions.module';
     GradesModule,
     SubjectsModule,
     QuestionsModule,
+    GamesModule,
   ],
   controllers: [AppController],
   providers:   [AppService],

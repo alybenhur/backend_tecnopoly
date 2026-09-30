@@ -64,6 +64,7 @@ async function bootstrap() {
     .addTag('users', 'Gestión de usuarios (solo Admin)')
     .addTag('subjects', 'Gestión de asignaturas')
     .addTag('questions', 'Banco de preguntas por asignatura')
+    .addTag('games', 'Partidas: guardar, retomar y resultados')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
