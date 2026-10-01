@@ -5,11 +5,13 @@ import { QuestionsController }  from './questions.controller';
 import { SubjectsModule }       from '../subjects/subjects.module';
 import { AssignedProfessorGuard } from '../common/guards/assigned-professor.guard';
 import { Question, QuestionSchema } from '../schemas/question.schema';
+import { CloudinaryModule }     from '../cloudinary/cloudinary.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Question.name, schema: QuestionSchema }]),
     SubjectsModule,
+    CloudinaryModule,
   ],
   controllers: [QuestionsController],
   providers:   [QuestionsService, AssignedProfessorGuard],

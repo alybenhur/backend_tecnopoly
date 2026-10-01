@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 import { QuestionLevel } from '../common/enums/question-level.enum';
+import { QuestionType } from '../common/enums/question-type.enum';
 import { baseSchemaOptions, embeddedSchemaOptions } from '../common/mongoose/schema-options';
 
 export type QuestionDocument = HydratedDocument<Question>;
@@ -46,8 +47,16 @@ export class Question {
   @Prop({ required: true, type: String, enum: QuestionLevel })
   level: QuestionLevel;
 
-  @Prop({ default: null })
-  image_url: string;
+  /** text: solo enunciado; image: se muestra la imagen y el enunciado pregunta sobre ella. */
+  @Prop({ type: String, enum: QuestionType, default: QuestionType.TEXT })
+  question_type: QuestionType;
+
+  @Prop({ type: String, default: null })
+  image_url: string | null;
+
+  /** Id de la imagen en Cloudinary (para borrarla al cambiarla o eliminar la pregunta). */
+  @Prop({ type: String, default: null })
+  image_public_id: string | null;
 
   @Prop({ type: [AnswerOptionSchema], default: [] })
   answer_options: AnswerOption[];

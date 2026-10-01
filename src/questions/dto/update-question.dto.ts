@@ -15,6 +15,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { QuestionLevel } from '../../common/enums/question-level.enum';
+import { QuestionType } from '../../common/enums/question-type.enum';
 import { AnswerOptionDto } from './create-question.dto';
 
 export class UpdateQuestionDto {
@@ -71,8 +72,19 @@ export class UpdateQuestionDto {
   @IsEnum(QuestionLevel)
   level?: QuestionLevel;
 
-  @ApiPropertyOptional({ example: 'https://cdn.tecnopoly.com/img/new.png', description: 'Nueva URL de imagen' })
+  @ApiPropertyOptional({ enum: QuestionType, description: 'Cambiar el tipo de pregunta (text / image)' })
+  @IsOptional()
+  @IsEnum(QuestionType)
+  question_type?: QuestionType;
+
+  @ApiPropertyOptional({ example: 'https://cdn.tecnopoly.com/img/new.png', description: 'Preguntas de texto: nueva URL de imagen opcional' })
   @IsOptional()
   @IsUrl()
   image_url?: string;
+
+  @ApiPropertyOptional({ description: 'Nueva imagen de Cloudinary (preguntas de imagen); la anterior se borra' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  image_public_id?: string;
 }

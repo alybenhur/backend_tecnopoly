@@ -20,7 +20,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { QuestionsService } from './questions.service';
-import { CreateQuestionDto } from './dto/create-question.dto';
+import { CreateQuestionDto, DiscardImageDto } from './dto/create-question.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -90,6 +90,40 @@ export class QuestionsController {
     @CurrentUser() user: { id: string },
   ) {
     return this.questionsService.create(subjectId, createQuestionDto, user.id);
+  }
+
+  @Post('image-signature')
+  @UseGuards(JwtAuthGuard, RolesGuard, AssignedProfessorGuard)
+  @Roles(Role.PROFESOR, Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Firma para subir una imagen a Cloudinary',
+    description: 'Devuelve los parámetros firmados para que el panel suba la imagen directo a Cloudinary ' +
+      '(carpeta de la asignatura; JPG, PNG o WEBP; máximo 5 MB). Luego se crea la pregunta con el public_id.',
+  })
+  @ApiParam({ name: 'subjectId', description: 'ObjectId de la asignatura' })
+  @ApiResponse({ status: 200, description: '{ upload_url, api_key, timestamp, signature, folder, allowed_formats, max_bytes }' })
+  @ApiResponse({ status: 403, description: 'Profesor no asignado a esta asignatura.' })
+  imageSignature(@Param('subjectId', ParseObjectIdPipe) subjectId: string) {
+    return this.questionsService.signImageUpload(subjectId);
+  }
+
+  @Post('image-discard')
+  @UseGuards(JwtAuthGuard, RolesGuard, AssignedProfessorGuard)
+  @Roles(Role.PROFESOR, Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Descartar una imagen subida sin usar',
+    description: 'Borra de Cloudinary una imagen que se subió pero no se guardó en ninguna pregunta (p. ej. al cancelar el formulario).',
+  })
+  @ApiParam({ name: 'subjectId', description: 'ObjectId de la asignatura' })
+  discardImage(
+    @Param('subjectId', ParseObjectIdPipe) subjectId: string,
+    @Body() dto: DiscardImageDto,
+  ) {
+    return this.questionsService.discardImage(subjectId, dto.public_id);
   }
 
   @Patch(':id')

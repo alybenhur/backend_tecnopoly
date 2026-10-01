@@ -15,6 +15,7 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { QuestionLevel } from '../../common/enums/question-level.enum';
+import { QuestionType } from '../../common/enums/question-type.enum';
 
 export class AnswerOptionDto {
   @ApiProperty({ example: 'Disco Duro (HDD)', description: 'Texto de la opción de respuesta' })
@@ -93,8 +94,30 @@ export class CreateQuestionDto {
   @IsEnum(QuestionLevel)
   level: QuestionLevel;
 
-  @ApiPropertyOptional({ example: 'https://cdn.tecnopoly.com/img/storage.png', description: 'URL de imagen opcional para la pregunta' })
+  @ApiPropertyOptional({ enum: QuestionType, default: QuestionType.TEXT,
+    description: 'text = solo enunciado; image = la pregunta se hace sobre una imagen (requiere image_public_id)' })
+  @IsOptional()
+  @IsEnum(QuestionType)
+  question_type?: QuestionType;
+
+  @ApiPropertyOptional({ example: 'https://cdn.tecnopoly.com/img/storage.png',
+    description: 'Preguntas de texto: URL de imagen opcional. En preguntas de imagen la pone el backend a partir de image_public_id' })
   @IsOptional()
   @IsUrl()
   image_url?: string;
+
+  @ApiPropertyOptional({ example: 'tecnopoly/questions/665f.../placa-madre',
+    description: 'public_id que devuelve Cloudinary al subir la imagen (preguntas de imagen)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  image_public_id?: string;
+}
+
+export class DiscardImageDto {
+  @ApiProperty({ example: 'tecnopoly/questions/665f.../placa-madre', description: 'public_id de la imagen a descartar' })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(300)
+  public_id: string;
 }
