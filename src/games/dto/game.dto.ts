@@ -56,6 +56,14 @@ export class CreateGameDto {
   @IsOptional() @IsEnum(QuestionLevel)
   level?: QuestionLevel;
 
+  @ApiPropertyOptional({ description: 'ObjectId de la categoría jugada (sin él: todas las categorías)' })
+  @IsOptional() @IsMongoId()
+  category_id?: string;
+
+  @ApiPropertyOptional({ example: 'Hardware' })
+  @IsOptional() @IsString() @MaxLength(60)
+  category_name?: string;
+
   @ApiProperty({ example: '1002345678', description: 'Estudiante que creó la sala (host)' })
   @Transform(normalizeId)
   @IsString() @MinLength(1) @MaxLength(150)

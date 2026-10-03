@@ -1,5 +1,6 @@
 import {
   IsString,
+  IsMongoId,
   IsInt,
   IsEnum,
   IsOptional,
@@ -19,6 +20,11 @@ import { QuestionType } from '../../common/enums/question-type.enum';
 import { AnswerOptionDto } from './create-question.dto';
 
 export class UpdateQuestionDto {
+  @ApiPropertyOptional({ example: '6650f0c2a1b2c3d4e5f60789', description: 'Mover la pregunta a otra categoría de la misma asignatura' })
+  @IsOptional()
+  @IsMongoId()
+  category_id?: string;
+
   @ApiPropertyOptional({ example: '¿Cuál medio de almacenamiento es más rápido?', description: 'Nuevo enunciado de la pregunta' })
   @IsOptional()
   @IsString()

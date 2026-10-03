@@ -154,6 +154,8 @@ export class GamesService {
       subject_id: game.subject_id,
       subject_name: game.subject_name,
       level: game.level,
+      category_id: game.category_id,
+      category_name: game.category_name,
       finished_at: game.finished_at,
       results: [...game.results].sort((a, b) => a.rank - b.rank),
     };

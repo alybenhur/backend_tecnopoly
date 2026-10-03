@@ -1,5 +1,6 @@
 import {
   IsString,
+  IsMongoId,
   IsInt,
   IsEnum,
   IsOptional,
@@ -31,6 +32,10 @@ export class AnswerOptionDto {
 }
 
 export class CreateQuestionDto {
+  @ApiProperty({ example: '6650f0c2a1b2c3d4e5f60789', description: 'ObjectId de la categoría (de la misma asignatura)' })
+  @IsMongoId()
+  category_id: string;
+
   @ApiProperty({
     example: '¿Cuál de estos medios de almacenamiento es típicamente el más rápido?',
     description: 'Enunciado de la pregunta',

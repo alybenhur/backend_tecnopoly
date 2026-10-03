@@ -5,6 +5,7 @@ import { SubjectsController } from './subjects.controller';
 import { Subject, SubjectSchema }   from '../schemas/subject.schema';
 import { User, UserSchema }         from '../schemas/user.schema';
 import { Question, QuestionSchema } from '../schemas/question.schema';
+import { Category, CategorySchema } from '../schemas/category.schema';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { Question, QuestionSchema } from '../schemas/question.schema';
       { name: Subject.name,  schema: SubjectSchema },
       { name: User.name,     schema: UserSchema },
       { name: Question.name, schema: QuestionSchema },
+      { name: Category.name, schema: CategorySchema },
     ]),
   ],
   controllers: [SubjectsController],

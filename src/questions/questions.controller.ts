@@ -10,7 +10,9 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
+import { Types } from 'mongoose';
 import {
   ApiTags,
   ApiOperation,
@@ -47,13 +49,17 @@ export class QuestionsController {
   })
   @ApiParam({ name: 'subjectId', description: 'ObjectId de la asignatura' })
   @ApiQuery({ name: 'level', required: false, enum: QuestionLevel, description: 'Filtrar por nivel de dificultad' })
+  @ApiQuery({ name: 'category', required: false, description: 'Filtrar por categoría (ObjectId); sin él, todas las categorías' })
   @ApiResponse({ status: 200, description: 'Lista de preguntas con sus opciones.' })
   @ApiResponse({ status: 404, description: 'Asignatura no encontrada.' })
   findAll(
     @Param('subjectId', ParseObjectIdPipe) subjectId: string,
     @Query('level') level?: QuestionLevel,
+    @Query('category') category?: string,
   ) {
-    return this.questionsService.findAllBySubject(subjectId, level);
+    if (category && !Types.ObjectId.isValid(category))
+      throw new BadRequestException('category debe ser un ObjectId válido');
+    return this.questionsService.findAllBySubject(subjectId, level, category || undefined);
   }
 
   @Get(':id')

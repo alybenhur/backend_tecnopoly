@@ -7,6 +7,8 @@ import { QueryFilter, Model } from 'mongoose';
 import { Subject, SubjectDocument }   from '../schemas/subject.schema';
 import { User, UserDocument }         from '../schemas/user.schema';
 import { Question, QuestionDocument } from '../schemas/question.schema';
+import { Category, CategoryDocument } from '../schemas/category.schema';
+import { ensureDefaultCategory } from '../categories/default-category';
 import { CreateSubjectDto }   from './dto/create-subject.dto';
 import { UpdateSubjectDto }   from './dto/update-subject.dto';
 import { AssignProfessorDto } from './dto/assign-professor.dto';
@@ -24,6 +26,7 @@ export class SubjectsService {
     @InjectModel(Subject.name)  private subjectModel:  Model<SubjectDocument>,
     @InjectModel(User.name)     private userModel:     Model<UserDocument>,
     @InjectModel(Question.name) private questionModel: Model<QuestionDocument>,
+    @InjectModel(Category.name) private categoryModel: Model<CategoryDocument>,
   ) {}
 
   private async verifySubject(id: string) {
@@ -63,6 +66,8 @@ export class SubjectsService {
     await this.assertNameAvailable(dto.name, dto.grade_id);
 
     const created = await this.subjectModel.create({ ...dto, created_by: adminId });
+    // Toda asignatura arranca con la categoría "General" para poder crear preguntas de inmediato
+    await ensureDefaultCategory(this.categoryModel, created._id);
     return this.findOne(created.id);
   }
 
@@ -97,6 +102,7 @@ export class SubjectsService {
 
     // Equivalente al ON DELETE CASCADE de `questions.subject_id`.
     await this.questionModel.deleteMany({ subject_id: id });
+    await this.categoryModel.deleteMany({ subject_id: id });
     await this.subjectModel.findByIdAndDelete(id);
 
     return { message: `Asignatura con id ${id} eliminada correctamente` };

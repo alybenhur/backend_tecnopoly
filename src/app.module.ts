@@ -11,6 +11,7 @@ import { GradesModule }    from './grades/grades.module';
 import { SubjectsModule }  from './subjects/subjects.module';
 import { QuestionsModule } from './questions/questions.module';
 import { GamesModule }     from './games/games.module';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { GamesModule }     from './games/games.module';
     UsersModule,
     GradesModule,
     SubjectsModule,
+    CategoriesModule,
     QuestionsModule,
     GamesModule,
   ],

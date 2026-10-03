@@ -68,6 +68,13 @@ export class Game {
   @Prop({ default: null })
   level: string;
 
+  /** Categoría jugada; null = todas las categorías de la asignatura. */
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Category', default: null })
+  category_id: Types.ObjectId | null;
+
+  @Prop({ type: String, default: null, maxlength: 60 })
+  category_name: string | null;
+
   @Prop({ required: true, type: String, enum: GameStatus, default: GameStatus.IN_PROGRESS, index: true })
   status: GameStatus;
 

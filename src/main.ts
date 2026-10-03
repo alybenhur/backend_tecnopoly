@@ -63,6 +63,7 @@ async function bootstrap() {
     .addTag('auth', 'Autenticación y sesión')
     .addTag('users', 'Gestión de usuarios (solo Admin)')
     .addTag('subjects', 'Gestión de asignaturas')
+    .addTag('categories', 'Categorías de preguntas dentro de cada asignatura')
     .addTag('questions', 'Banco de preguntas por asignatura')
     .addTag('games', 'Partidas: guardar, retomar y resultados')
     .build();

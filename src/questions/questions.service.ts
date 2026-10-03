@@ -11,6 +11,7 @@ import { QuestionLevel }    from '../common/enums/question-level.enum';
 import { QuestionType }     from '../common/enums/question-type.enum';
 import { Role }             from '../common/enums/role.enum';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CategoriesService } from '../categories/categories.service';
 
 @Injectable()
 export class QuestionsService {
@@ -18,6 +19,7 @@ export class QuestionsService {
     @InjectModel(Question.name)
     private questionModel: Model<QuestionDocument>,
     private cloudinary: CloudinaryService,
+    private categories: CategoriesService,
   ) {}
 
   /**
@@ -84,6 +86,7 @@ export class QuestionsService {
 
     const options = this.normalizeOptions(answer_options);
     this.assertCorrectIndex(dto.correct_answer_index, options.length);
+    await this.categories.assertBelongsToSubject(subjectId, dto.category_id);
 
     const image = await this.resolveImage(subjectId, question_type ?? QuestionType.TEXT, image_public_id, image_url);
 
@@ -96,9 +99,10 @@ export class QuestionsService {
     });
   }
 
-  async findAllBySubject(subjectId: string, level?: QuestionLevel) {
+  async findAllBySubject(subjectId: string, level?: QuestionLevel, categoryId?: string) {
     const filter: QueryFilter<QuestionDocument> = { subject_id: subjectId };
     if (level) filter.level = level;
+    if (categoryId) filter.category_id = categoryId;
 
     return this.questionModel.find(filter).sort({ created_at: -1 });
   }
@@ -122,6 +126,7 @@ export class QuestionsService {
 
     // Imagen: solo se recalcula si el cambio la toca (tipo, imagen nueva o URL)
     const subjectId = question.subject_id.toString();
+    if (dto.category_id) await this.categories.assertBelongsToSubject(subjectId, dto.category_id);
     const tocaImagen = question_type !== undefined || image_public_id !== undefined || image_url !== undefined;
     let image = {};
     if (tocaImagen) {

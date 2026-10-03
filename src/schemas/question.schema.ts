@@ -23,6 +23,10 @@ export class Question {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Subject', required: true, index: true })
   subject_id: Types.ObjectId;
 
+  /** Categoría dentro de la asignatura (las preguntas antiguas se migraron a "General"). */
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Category', required: true, index: true })
+  category_id: Types.ObjectId;
+
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', default: null })
   created_by: Types.ObjectId;
 
