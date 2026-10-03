@@ -30,7 +30,6 @@ import { AssignedProfessorGuard } from '../common/guards/assigned-professor.guar
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
-import { QuestionLevel } from '../common/enums/question-level.enum';
 import { ParseObjectIdPipe } from '../common/pipes/parse-object-id.pipe';
 
 @ApiTags('questions')
@@ -45,21 +44,20 @@ export class QuestionsController {
   @Get()
   @ApiOperation({
     summary: 'Listar preguntas de una asignatura',
-    description: 'Devuelve todas las preguntas con sus opciones. Se puede filtrar por nivel de dificultad. Acceso público.',
+    description: 'Devuelve todas las preguntas con sus opciones. Se puede filtrar por categoría. Acceso público.',
   })
   @ApiParam({ name: 'subjectId', description: 'ObjectId de la asignatura' })
-  @ApiQuery({ name: 'level', required: false, enum: QuestionLevel, description: 'Filtrar por nivel de dificultad' })
   @ApiQuery({ name: 'category', required: false, description: 'Filtrar por categoría (ObjectId); sin él, todas las categorías' })
   @ApiResponse({ status: 200, description: 'Lista de preguntas con sus opciones.' })
   @ApiResponse({ status: 404, description: 'Asignatura no encontrada.' })
   findAll(
     @Param('subjectId', ParseObjectIdPipe) subjectId: string,
-    @Query('level') level?: QuestionLevel,
     @Query('category') category?: string,
   ) {
+    // Las preguntas ya no tienen nivel: si un cliente antiguo envía ?level= se ignora
     if (category && !Types.ObjectId.isValid(category))
       throw new BadRequestException('category debe ser un ObjectId válido');
-    return this.questionsService.findAllBySubject(subjectId, level, category || undefined);
+    return this.questionsService.findAllBySubject(subjectId, category || undefined);
   }
 
   @Get(':id')

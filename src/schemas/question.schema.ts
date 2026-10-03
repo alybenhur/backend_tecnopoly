@@ -48,8 +48,9 @@ export class Question {
   @Prop({ required: true })
   incorrect_explanation: string;
 
-  @Prop({ required: true, type: String, enum: QuestionLevel })
-  level: QuestionLevel;
+  /** Ya no se usa: las preguntas no tienen nivel. Se conserva solo el valor de las preguntas antiguas. */
+  @Prop({ type: String, default: null })
+  level: QuestionLevel | null;
 
   /** text: solo enunciado; image: se muestra la imagen y el enunciado pregunta sobre ella. */
   @Prop({ type: String, enum: QuestionType, default: QuestionType.TEXT })

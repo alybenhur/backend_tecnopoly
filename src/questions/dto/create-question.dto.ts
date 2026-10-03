@@ -15,7 +15,6 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { QuestionLevel } from '../../common/enums/question-level.enum';
 import { QuestionType } from '../../common/enums/question-type.enum';
 
 export class AnswerOptionDto {
@@ -94,10 +93,6 @@ export class CreateQuestionDto {
   @MinLength(5)
   @MaxLength(1000)
   incorrect_explanation: string;
-
-  @ApiProperty({ enum: QuestionLevel, example: QuestionLevel.MEDIO, description: 'Nivel de dificultad' })
-  @IsEnum(QuestionLevel)
-  level: QuestionLevel;
 
   @ApiPropertyOptional({ enum: QuestionType, default: QuestionType.TEXT,
     description: 'text = solo enunciado; image = la pregunta se hace sobre una imagen (requiere image_public_id)' })

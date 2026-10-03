@@ -7,7 +7,6 @@ import { QueryFilter, Model } from 'mongoose';
 import { Question, QuestionDocument } from '../schemas/question.schema';
 import { CreateQuestionDto, AnswerOptionDto } from './dto/create-question.dto';
 import { UpdateQuestionDto } from './dto/update-question.dto';
-import { QuestionLevel }    from '../common/enums/question-level.enum';
 import { QuestionType }     from '../common/enums/question-type.enum';
 import { Role }             from '../common/enums/role.enum';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
@@ -99,9 +98,8 @@ export class QuestionsService {
     });
   }
 
-  async findAllBySubject(subjectId: string, level?: QuestionLevel, categoryId?: string) {
+  async findAllBySubject(subjectId: string, categoryId?: string) {
     const filter: QueryFilter<QuestionDocument> = { subject_id: subjectId };
-    if (level) filter.level = level;
     if (categoryId) filter.category_id = categoryId;
 
     return this.questionModel.find(filter).sort({ created_at: -1 });
